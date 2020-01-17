@@ -9,6 +9,7 @@ Item {
     visible: true
 
     signal geocodecheck(int err)
+    signal addfavorit(double x, double y)
 
     Plugin {
         id: mapPlugin
@@ -48,6 +49,10 @@ Item {
             ListElement{
                 Rad: 500.0
             }
+            ListElement{
+                x: 0
+                y: 0
+            }
         }
 
         GeocodeModel {
@@ -81,12 +86,68 @@ Item {
             }
         MouseArea{
             anchors.fill: map
+            acceptedButtons: Qt.AllButtons
+            onClicked: {
+                if (mouse.button == Qt.RightButton)
+                {
+                    contmenu.popup(mouse.x, mouse.y)
+                    listmodel.setProperty(2, "x", map.toCoordinate(Qt.point(mouse.x, mouse.y)).latitude);
+                    listmodel.setProperty(2, "y", map.toCoordinate(Qt.point(mouse.x, mouse.y)).longitude);
+                }
+                else
+                    contmenu.close()
+            }
+            onPressed: {
+                if (mouse.button == Qt.LeftButton)
+                    contmenu.close()
+            }
+
             onWheel: {
                 wheel.accepted = false
-                listmodel.setProperty(1, "Rad", (map.zoomLevel * 10))
+                if (map.zoomLevel >= 17)
+                    listmodel.setProperty(1, "Rad", (3))
+                else if (map.zoomLevel >= 16)
+                    listmodel.setProperty(1, "Rad", (10))
+                else if (map.zoomLevel >= 15)
+                    listmodel.setProperty(1, "Rad", (20))
+                else if (map.zoomLevel >= 14)
+                    listmodel.setProperty(1, "Rad", (40))
+                else if (map.zoomLevel >= 13)
+                    listmodel.setProperty(1, "Rad", (70))
+                else if (map.zoomLevel >= 12)
+                    listmodel.setProperty(1, "Rad", (100))
+                else if (map.zoomLevel >= 11)
+                    listmodel.setProperty(1, "Rad", (200))
+                else if (map.zoomLevel >= 10)
+                    listmodel.setProperty(1, "Rad", (400))
+                else if (map.zoomLevel >= 9)
+                    listmodel.setProperty(1, "Rad", (800))
+                else if (map.zoomLevel >= 8)
+                    listmodel.setProperty(1, "Rad", (1500))
+                else if (map.zoomLevel >= 7)
+                    listmodel.setProperty(1, "Rad", (3000))
+                else if (map.zoomLevel >= 6)
+                    listmodel.setProperty(1, "Rad", (6000))
+                else if (map.zoomLevel >= 5)
+                    listmodel.setProperty(1, "Rad", (12000))
+                else if (map.zoomLevel >= 4)
+                    listmodel.setProperty(1, "Rad", (20000))
+                else if (map.zoomLevel >= 3)
+                    listmodel.setProperty(1, "Rad", (40000))
+                else if (map.zoomLevel >= 2)
+                    listmodel.setProperty(1, "Rad", (80000))
+                else if (map.zoomLevel >= 1)
+                    listmodel.setProperty(1, "Rad", (200000))
             }
         }
+        Menu {
+            id: contmenu
+            Action {
+                text: "Добавить в избранное"
+                onTriggered: {addfavorit(listmodel.get(2).x, listmodel.get(2).y)}
+            }
         }
+    }
     function search(str)
         {
         geocodeModel.query = str
