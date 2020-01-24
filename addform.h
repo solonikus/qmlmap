@@ -16,6 +16,7 @@ class Addform : public QWidget
 public:
     double x;
     double y;
+    int flag;
 
 public:
     explicit Addform(QWidget *parent = nullptr);
@@ -31,6 +32,9 @@ private slots:
 
 private:
     Ui::Addform *ui;
+
+public:
+    void editer(QString text);
 };
 
 #endif // ADDFORM_H

@@ -58,6 +58,13 @@ private slots:
 
     void on_listWidget_itemDoubleClicked(QListWidgetItem *item);
 
+    void edititem();
+
+    void deleteitem();
+
+public slots:
+    void on_listWidget_customContextMenuRequested(const QPoint &pos);
+
 private:
     Ui::MainWindow *ui;
     QQuickWidget *map;
@@ -67,6 +74,7 @@ private:
     QObject *whot;
     QObject *test;
     Addform *form;
+    QMenu *menu;
 public:
     maplist *maplst;
 };

@@ -10,6 +10,7 @@
 #include <string>
 #include <QQmlComponent>
 #include <QQmlEngine>
+#include <QMenu>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -17,11 +18,18 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     form = new Addform();
-    maplst = NULL;
+    maplst = nullptr;
 //    QQuickWidget *view = ui->miniw;             // Здесь мы подключаем наш виджет
 //    view->setSource(QUrl("qrc:/test.qml"));     // Здесь задаем QML файл
 //    object = view->rootObject();                // Присваевыем объект, что в классе
-    whot = object->findChild<QObject*>("text1");//Здесь мы находим объект дочерний в qml
+//    whot = object->findChild<QObject*>("text1");//Здесь мы находим объект дочерний в qml
+    menu = new QMenu(this);
+    QAction *edititem = new QAction("Редактировать", this);
+    QAction *deleteitem = new QAction("Удалить", this);
+    connect(edititem, SIGNAL(triggered()), this, SLOT(edititem()));
+    connect(deleteitem, SIGNAL(triggered()), this, SLOT(deleteitem()));
+    menu->addAction(edititem);
+    menu->addAction(deleteitem);
     map = ui->mpv;
     map->setSource(QUrl("qrc:/map.qml"));
     mapobj = map->rootObject();
@@ -32,6 +40,8 @@ MainWindow::MainWindow(QWidget *parent)
     QObject::connect(mapobj, SIGNAL(geocodecheck(int)), this, SLOT(geocodechecker(int)));
     QObject::connect(mapobj, SIGNAL(addfavorit(double,double)), this, SLOT(addfavorit(double, double)));
     QObject::connect(form, SIGNAL(sendtext(QString)), this, SLOT(gettext(QString)));
+    ui->listWidget->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(ui->listWidget, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(on_listWidget_customContextMenuRequested(QPoint)));
 //    object->setProperty("text",QVariant("Change you text here..."));
 }
 
@@ -48,6 +58,22 @@ void MainWindow::geocodechecker(int error)
     return;
 }
 
+maplist *searchlst(QString text, maplist *lst)
+{
+    maplist *tmp;
+    tmp = lst;
+    if (text == tmp->text)
+        return (tmp);
+    while (tmp != nullptr)
+    {
+        if (text == tmp->text)
+            return (tmp);
+        else
+            tmp = tmp->next;
+    }
+    return nullptr;
+}
+
 void addlist(double x, double y, maplist *tmp)
 {
     tmp->lat = x;
@@ -57,6 +83,7 @@ void addlist(double x, double y, maplist *tmp)
 
 void MainWindow::addfavorit(double x, double y)
 {
+    form->flag = 0;
     form->x = x;
     form->y = y;
     form->show();
@@ -65,10 +92,22 @@ void MainWindow::addfavorit(double x, double y)
 void MainWindow::gettext(QString str)
 {
     maplist *tmp;
-    if (maplst == NULL)
+
+    if (form->flag == 1)
+    {
+        maplist *edt;
+        QString curtext;
+        curtext = ui->listWidget->currentItem()->text();
+        edt = maplst;
+        edt = searchlst(curtext,edt);
+        edt->text = str;
+        ui->listWidget->currentItem()->setText(str);
+        return;
+    }
+    if (maplst == nullptr)
     {
         maplst = new maplist;
-        maplst->next = NULL;
+        maplst->next = nullptr;
         maplst->lat = form->x;
         maplst->lon = form->y;
         maplst->text = str;
@@ -76,21 +115,20 @@ void MainWindow::gettext(QString str)
     else
     {
         tmp = maplst;
-        while (tmp->next != NULL)
+        while (tmp->next != nullptr)
         {
-            if (tmp->next == NULL)
+            if (tmp->next == nullptr)
                 break;
             tmp = tmp->next;
         }
         tmp->next = new maplist;
         tmp = tmp->next;
-        tmp->next = NULL;
+        tmp->next = nullptr;
         tmp->lat = form->x;
         tmp->lon = form->y;
         tmp->text = str;
     }
     ui->listWidget->addItem(str);
-
 }
 
 MainWindow::~MainWindow()
@@ -127,7 +165,7 @@ void MainWindow::on_pushButton_clicked()
 {
     QString str1 = ui->lineEdit_3->text();
     QVariant qv(str1);
-    qDebug() << "Str1:" << str1;
+//    qDebug() << "Str1:" << str1;
     if (ui->lineEdit_3->text() == "")
     {
         ui->statusbar->showMessage("Error, empty search line", 5000);
@@ -142,32 +180,66 @@ void MainWindow::on_pushButton_2_clicked()
     emit myclass.clearmap();
 }
 
-maplist *searchlst(QString text, maplist *lst)
+maplist *searchlstd(QString text, maplist *lst)
 {
     maplist *tmp;
     tmp = lst;
-    if (text == tmp->text)
+    if (tmp->next != nullptr && text == tmp->text)
         return (tmp);
-    while (tmp != NULL)
+    while (tmp->next != nullptr)
     {
-        if (text == tmp->text)
+        if (text == tmp->next->text)
             return (tmp);
         else
             tmp = tmp->next;
     }
-    return (NULL);
+    return (nullptr);
 }
 
 void MainWindow::on_listWidget_itemDoubleClicked(QListWidgetItem *item)
 {
-    qDebug() << "Status: !!!";
+//    qDebug() << "Status: !!!";
     maplist *cur;
     cur = searchlst(item->text(), this->maplst);
-    if (cur == NULL)
+    if (cur == nullptr)
         ui->statusbar->showMessage("Error!!!!!!!!!!!!!!!!!!!!!!!!!!", 5000);
     else
     {
          mapchange->setProperty("center", QVariant::fromValue(QGeoCoordinate(cur->lat,cur->lon)));
          mapchange->setProperty("zoomLevel", 15);
     }
+}
+
+void MainWindow::edititem()
+{
+    QString text;
+    text = ui->listWidget->currentItem()->text();
+    form->editer(text);
+    form->show();
+}
+
+void MainWindow::deleteitem()
+{
+    maplist *cur = maplst;
+    maplist *tmp = maplst;
+    QListWidgetItem *it = ui->listWidget->takeItem(ui->listWidget->currentRow());
+    if (maplst->next != nullptr && it->text() == maplst->text)
+    {
+        maplst = maplst->next;
+    }
+    else if (cur && cur->next != nullptr)
+    {
+        cur = searchlstd(it->text(), cur);
+        tmp = cur->next;
+        cur->next = cur->next->next;
+    }
+    else
+        maplst = nullptr;
+    delete tmp;
+    delete it;
+}
+
+void MainWindow::on_listWidget_customContextMenuRequested(const QPoint &pos)
+{
+    menu->popup(ui->listWidget->viewport()->mapToGlobal(pos));
 }

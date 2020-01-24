@@ -13,13 +13,12 @@ Item {
 
     Plugin {
         id: mapPlugin
-        name: "osm" // "mapboxgl", "esri", ...
-        // specify plugin parameters if necessary
-        // PluginParameter {
-        //     name:
-        //     value:
-        // }
+        name: "osm"
+        PluginParameter {
+             name: "osm.mapping.custom.host"
+             value: "http://tiles.corp.smartdriving.io/v1/map/"
         }
+    }
     Map {
         id: map
         anchors.fill: parent
@@ -27,6 +26,8 @@ Item {
         plugin: mapPlugin
         center: QtPositioning.coordinate(55.7507, 37.6175)
         zoomLevel: 10
+        activeMapType: supportedMapTypes[6]
+//        activeMapType: supportedMapTypes[supportedMapTypes.length - 1]
         MapItemView {
             id: map111
             model: listmodel
@@ -149,13 +150,14 @@ Item {
         }
     }
     function search(str)
-        {
+    {
+        map.zoomLevel = 10
         geocodeModel.query = str
         geocodeModel.update()
         geocodecheck(geocodeModel.status)
-        }
-    function clear()
-        {
-            map111.visible = false;
-        }
     }
+    function clear()
+    {
+            map111.visible = false;
+    }
+}
